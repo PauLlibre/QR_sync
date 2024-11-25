@@ -9,16 +9,23 @@ export default function MobilePage() {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
+    // Check for camera API support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Camera API not supported in this browser.');
+      return;
+    }
+
     // Initialize the scanner
-    const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, true);
+    const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, /* verbose= */ true);
     scannerRef.current = scanner;
 
     scanner.render(
       (decodedText: string) => {
+        console.log('QR Code decoded:', decodedText);
         setSessionId(decodedText);
 
         // Establish WebSocket connection
-        const newSocket: Socket = io('http://localhost:3001');
+        const newSocket: Socket = io('https://YOUR_NGROK_URL:3001'); // Use HTTPS and your ngrok URL
         newSocket.emit('joinRoom', decodedText);
         socketRef.current = newSocket;
 
