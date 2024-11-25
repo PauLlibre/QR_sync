@@ -1,22 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(req: NextRequest) {
-  const url = req.nextUrl.clone();
+  const { pathname } = req.nextUrl;
 
-  // Verificar si el usuario ya está en una ruta específica
-  if (url.pathname.startsWith('/mobile') || url.pathname.startsWith('/desktop')) {
+  // Exclude specific paths from middleware
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/static/') ||
+    pathname === '/favicon.ico'
+  ) {
     return NextResponse.next();
   }
 
+  // Regular expression to match '/desktop' or '/desktop/*' and same for '/mobile'
+  const desktopPattern = /^\/desktop(\/.*)?$/;
+  const mobilePattern = /^\/mobile(\/.*)?$/;
+
+  // If already on /desktop or /mobile paths, don't redirect
+  if (desktopPattern.test(pathname) || mobilePattern.test(pathname)) {
+    return NextResponse.next();
+  }
+
+  // User Agent detection
   const userAgent = req.headers.get('user-agent') || '';
   const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
 
-  // Redirigir según el dispositivo detectado
+  // Redirect accordingly
   if (isMobile) {
-    url.pathname = '/mobile';
+    return NextResponse.redirect(new URL('/mobile', req.url));
   } else {
-    url.pathname = '/desktop';
+    return NextResponse.redirect(new URL('/desktop', req.url));
   }
-
-  return NextResponse.redirect(url);
 }
+
+// Middleware configuration to apply middleware only to certain paths
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};

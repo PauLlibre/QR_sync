@@ -10,9 +10,11 @@ export default function DesktopPage() {
     const generatedSessionId = `session-${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(generatedSessionId);
 
-    const newSocket: Socket = io('http://localhost:3001');
+    const newSocket: Socket = io('http://localhost:8080');
+    console.log(generatedSessionId, newSocket);
     newSocket.emit('joinRoom', generatedSessionId);
 
+    console.log(888888888888888888888888888888888888)
     newSocket.on('activityUpdate', (data: string) => {
       alert(`New Activity: ${data}`);
     });
