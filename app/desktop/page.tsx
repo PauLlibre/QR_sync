@@ -1,21 +1,19 @@
 'use client';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState } from 'react';
-import io from 'socket.io-client';
+import io, { Socket } from 'socket.io-client';
 
 export default function DesktopPage() {
-  const [sessionId, setSessionId] = useState('');
-  const [socket, setSocket] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string>('');
 
   useEffect(() => {
     const generatedSessionId = `session-${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(generatedSessionId);
 
-    const newSocket = io('http://localhost:3001');
+    const newSocket: Socket = io('http://localhost:3001');
     newSocket.emit('joinRoom', generatedSessionId);
-    setSocket(newSocket);
 
-    newSocket.on('activityUpdate', (data: any) => {
+    newSocket.on('activityUpdate', (data: string) => {
       alert(`New Activity: ${data}`);
     });
 
