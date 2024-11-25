@@ -1,51 +1,61 @@
 'use client';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import io, { Socket } from 'socket.io-client';
 
 export default function MobilePage() {
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const socketRef = useRef<Socket | null>(null);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+    // Initialize the scanner
+    const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, true);
+    scannerRef.current = scanner;
+
     scanner.render(
       (decodedText: string) => {
         setSessionId(decodedText);
+
         // Establish WebSocket connection
         const newSocket: Socket = io('http://localhost:3001');
         newSocket.emit('joinRoom', decodedText);
-        setSocket(newSocket);
+        socketRef.current = newSocket;
 
         fetch('/api/link-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId: decodedText }),
-        }).then(() => {
-          alert('Session linked!');
-          scanner.clear();
-        });
+        })
+          .then(() => {
+            alert('Session linked!');
+            scanner.clear();
+          })
+          .catch((error) => {
+            console.error('Error linking session:', error);
+          });
       },
       (errorMessage: string) => {
         console.error(`QR Code scan error: ${errorMessage}`);
       }
     );
 
-    // Clean up on unmount
+    // Cleanup on unmount
     return () => {
-      socket?.disconnect();
+      scannerRef.current?.clear();
+      socketRef.current?.disconnect();
     };
   }, []);
 
   const selectActivity = (activity: string) => {
-    if (socket && sessionId) {
-      socket.emit('activitySelected', { room: sessionId, activity });
+    if (socketRef.current && sessionId) {
+      socketRef.current.emit('activitySelected', { room: sessionId, activity });
     }
   };
 
   return (
     <div>
-      <div id="reader" />
+      <div id="reader" style={{ width: '100%', height: '500px' }} />
       {sessionId && (
         <div>
           <h2>Select an Activity</h2>
